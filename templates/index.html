@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire & Smoke Security Monitoring System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+        <div class="brand">
+            <div class="brand-icon">
+                <span class="flame-icon">🔥</span>
+            </div>
+            <div class="brand-text">
+                <h1>FIRE & SMOKE SECURITY MONITOR</h1>
+                <span class="system-sub">REAL-TIME CAMERA SURVEILLANCE & FALSE-POSITIVE DEFENSE</span>
+            </div>
+        </div>
+
+        <div class="header-status-group">
+            <div id="systemStateBadge" class="status-badge badge-normal">
+                <span class="status-dot"></span>
+                <span id="systemStateText">SYSTEM NORMAL</span>
+            </div>
+
+            <div class="audio-control-group">
+                <button id="btnSilenceAlarm" class="btn btn-warning" title="Silence sounding alarm" style="display: none;">
+                    🔕 Silence Alarm
+                </button>
+                <button id="btnToggleAudio" class="btn btn-secondary" title="Enable or disable audio alarm">
+                    🔔 Sound: ON
+                </button>
+            </div>
+
+            <button id="btnOpenSettings" class="btn btn-outline" title="Camera and threshold settings">
+                ⚙️ Settings
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-container">
+        <!-- Left Section: Live Camera Surveillance & HUD -->
+        <section class="card camera-section">
+            <div class="card-header">
+                <div class="camera-title-group">
+                    <h2>Live Surveillance Feed</h2>
+                    <span id="cameraInfoText" class="camera-sub">
+                        {{ config.CAMERA_ID }} &bull; {{ config.CAMERA_LOCATION }}
+                    </span>
+                </div>
+                <div class="camera-controls">
+                    <button id="btnStartMonitoring" class="btn btn-primary" title="Start live monitoring">
+                        ▶ Start Monitoring
+                    </button>
+                    <button id="btnStopMonitoring" class="btn btn-danger" title="Stop live monitoring">
+                        ⏹ Stop Monitoring
+                    </button>
+                </div>
+            </div>
+
+            <!-- Video Player Viewport -->
+            <div class="video-wrapper">
+                <img id="cameraStream" src="/video_feed" alt="Surveillance Camera Feed" class="video-feed">
+                
+                <!-- Overlay HUD Bar -->
+                <div class="video-overlay-bar">
+                    <div class="hud-item">
+                        <span class="hud-label">CAM STATUS</span>
+                        <span id="hudCamStatus" class="hud-value status-badge badge-pill badge-stopped">STOPPED</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">SURVEILLANCE FPS</span>
+                        <span id="hudFps" class="hud-value">0.0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">FRAME</span>
+                        <span id="hudFrame" class="hud-value">0</span>
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-label">SCREEN REJECTIONS</span>
+                        <span id="hudRejections" class="hud-value hud-accent">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hazard Status Tiles -->
+            <div class="hazard-indicators-grid">
+                <!-- Fire Indicator -->
+                <div id="tileFire" class="hazard-tile tile-normal">
+                    <div class="tile-icon">🔥</div>
+                    <div class="tile-info">
+                        <span class="tile-label">FIRE DETECTION</span>
+                        <span id="tileFireStatus" class="tile-state">NORMAL</span>
+                    </div>
+                    <div id="tileFireCount" class="tile-count">0</div>
+                </div>
+
+                <!-- Smoke Indicator -->
+                <div id="tileSmoke" class="hazard-tile tile-normal">
+                    <div class="tile-icon">💨</div>
+                    <div class="tile-info">
+                        <span class="tile-label">SMOKE DETECTION</span>
+                        <span id="tileSmokeStatus" class="tile-state">NORMAL</span>
+                    </div>
+                    <div id="tileSmokeCount" class="tile-count">0</div>
+                </div>
+
+                <!-- Uncertain Screen Proximity -->
+                <div id="tileUncertain" class="hazard-tile tile-normal">
+                    <div class="tile-icon">⚠️</div>
+                    <div class="tile-info">
+                        <span class="tile-label">SCREEN PROXIMITY</span>
+                        <span id="tileUncertainStatus" class="tile-state">CLEAR</span>
+                    </div>
+                    <div id="tileUncertainCount" class="tile-count">0</div>
+                </div>
+
+                <!-- False-Positive Shield Filter (Phone, Face & White-Object Defense) -->
+                <div id="tilePhoneShield" class="hazard-tile tile-shield">
+                    <div class="tile-icon">🛡️</div>
+                    <div class="tile-info">
+                        <span class="tile-label">FALSE-POSITIVE SHIELD</span>
+                        <span id="tilePhoneStatus" class="tile-state">ACTIVE (PHONE, FACE, WHITE-OBJECT)</span>
+                    </div>
+                    <div id="tilePhoneBlocked" class="tile-count">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Section: Security Incidents & Audit Log -->
+        <section class="card incidents-section">
+            <div class="card-header">
+                <div>
+                    <h2>Security Incidents</h2>
+                    <span class="camera-sub">Confirmed Hazards & Notification Delivery</span>
+                </div>
+                <div id="activeIncidentCountBadge" class="badge-count">0 Active</div>
+            </div>
+
+            <!-- Confirmed Red Alert Banner -->
+            <div id="confirmedAlertBanner" class="alert-banner alert-banner-critical" style="display: none;">
+                <div class="banner-header-row">
+                    <div class="banner-title-group">
+                        <span class="banner-icon">🚨</span>
+                        <div>
+                            <strong id="bannerTitle">CONFIRMED HAZARD DETECTED</strong>
+                            <span id="bannerSubtitle" class="banner-subtitle">Continuous environmental hazard verified by multi-frame temporal monitoring.</span>
+                        </div>
+                    </div>
+                    <div class="banner-actions">
+                        <button id="btnBannerSilence" class="btn btn-warning btn-sm" title="Silence alarm audio">🔕 Silence Alarm</button>
+                        <button id="btnBannerAck" class="btn btn-primary btn-sm" title="Acknowledge this active incident">✓ Acknowledge</button>
+                    </div>
+                </div>
+                <div class="alert-detail-grid">
+                    <div class="detail-cell">
+                        <span class="detail-lbl">HAZARD TYPE</span>
+                        <span id="bannerHazardType" class="detail-val hazard-text">FIRE</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">SEVERITY</span>
+                        <span id="bannerSeverity" class="detail-val severity-text">HIGH</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">CONFIDENCE</span>
+                        <span id="bannerConfidence" class="detail-val">0.0%</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">CAMERA ID</span>
+                        <span id="bannerCameraId" class="detail-val">{{ config.CAMERA_ID }}</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">LOCATION</span>
+                        <span id="bannerCameraLoc" class="detail-val">{{ config.CAMERA_LOCATION }}</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">TIMESTAMP</span>
+                        <span id="bannerTimestamp" class="detail-val font-mono">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sustained Uncertain Hazard Warning Banner -->
+            <div id="uncertainAlertBanner" class="alert-banner alert-banner-warning" style="display: none;">
+                <div class="banner-header-row">
+                    <div class="banner-title-group">
+                        <span class="banner-icon">⚠️</span>
+                        <div>
+                            <strong id="uncertainBannerTitle">SUSTAINED UNCERTAIN HAZARD WARNING</strong>
+                            <span class="banner-subtitle">Fire/smoke detection sustained near or behind screen device. Potential genuine hazard behind display.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-detail-grid">
+                    <div class="detail-cell">
+                        <span class="detail-lbl">HAZARD STATUS</span>
+                        <span class="detail-val text-warning">UNCONFIRMED / OCCLUDED</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">CAMERA ID</span>
+                        <span id="bannerUncertainCam" class="detail-val">{{ config.CAMERA_ID }}</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">LOCATION</span>
+                        <span id="bannerUncertainLoc" class="detail-val">{{ config.CAMERA_LOCATION }}</span>
+                    </div>
+                    <div class="detail-cell">
+                        <span class="detail-lbl">ACTION</span>
+                        <span class="detail-val text-warning">Inspect Area Manually</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incident Table -->
+            <div class="table-container">
+                <table class="incident-table">
+                    <thead>
+                        <tr>
+                            <th>Incident ID</th>
+                            <th>Time (UTC)</th>
+                            <th>Hazard</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Notifications</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentTableBody">
+                        <tr class="empty-row">
+                            <td colspan="7">No security incidents recorded. System monitoring normal.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- System Activity & Event Log -->
+            <div class="event-log-container">
+                <div class="log-header">
+                    <h3>Security Event Stream</h3>
+                    <span class="log-sub">Live audit trail</span>
+                </div>
+                <div id="eventStreamLog" class="event-stream">
+                    <div class="log-item">
+                        <span class="log-time">[Init]</span>
+                        <span class="log-msg">System started. Live camera monitoring initialized.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Incident Action Modal -->
+    <div id="incidentModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalIncidentTitle">Manage Incident</h3>
+                <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalIncidentDetails"></p>
+                <div class="form-group">
+                    <label for="operatorName">Security Operator Name</label>
+                    <input type="text" id="operatorName" class="form-input" value="Security Officer">
+                </div>
+                <div class="form-group">
+                    <label for="actionNotes">Notes / Resolution Details</label>
+                    <textarea id="actionNotes" class="form-input" rows="3" placeholder="Enter verification or resolution details..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeIncidentModal()">Cancel</button>
+                <button id="btnModalAck" class="btn btn-warning" onclick="submitIncidentAction('acknowledge')">Acknowledge</button>
+                <button id="btnModalResolve" class="btn btn-primary" onclick="submitIncidentAction('resolve')">Mark Resolved</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Camera & Detection Settings</h3>
+                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="settingCamId">Camera ID</label>
+                    <input type="text" id="settingCamId" class="form-input" value="{{ config.CAMERA_ID }}">
+                </div>
+                <div class="form-group">
+                    <label for="settingCamLoc">Camera Location</label>
+                    <input type="text" id="settingCamLoc" class="form-input" value="{{ config.CAMERA_LOCATION }}">
+                </div>
+                <div class="form-group">
+                    <label for="settingFireThresh">Fire Confidence Threshold (0.1 - 0.9)</label>
+                    <input type="number" id="settingFireThresh" class="form-input" step="0.05" min="0.1" max="0.95" value="{{ config.FIRE_CONFIDENCE_THRESHOLD }}">
+                </div>
+                <div class="form-group">
+                    <label for="settingSmokeThresh">Smoke Confidence Threshold (0.1 - 0.9)</label>
+                    <input type="number" id="settingSmokeThresh" class="form-input" step="0.05" min="0.1" max="0.95" value="{{ config.SMOKE_CONFIDENCE_THRESHOLD }}">
+                </div>
+                <div class="notice-box">
+                    <strong>Note:</strong> Detection inputs are restricted solely to live camera streams (Webcam / RTSP). Image and video uploads are intentionally disabled.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">Close</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

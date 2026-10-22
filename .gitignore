@@ -1,0 +1,29 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Configuration and secrets
+.env
+
+# Downloaded heavy model checkpoints (large files)
+# Keep lightweight defaults if committed, ignore custom training checkpoints
+*.pt.download
+*.weights
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+logs/
+*.log
