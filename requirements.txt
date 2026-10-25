@@ -1,6 +1,12 @@
-# Core web & dashboard
+# Core web & dashboard (Flask & Render deployment)
 flask>=3.0.0
 python-dotenv>=1.0.0
+
+# Streamlit Cloud deployment & Browser WebRTC
+streamlit>=1.35.0
+streamlit-webrtc>=0.47.0
+av>=10.0.0
+pyarrow>=10.0.0
 
 # Computer vision & Deep Learning
 numpy>=1.24.0
