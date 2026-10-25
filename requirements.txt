@@ -18,3 +18,4 @@ requests>=2.31.0
 
 # Testing & quality assurance
 pytest>=7.4.0
+gunicorn
